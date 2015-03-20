@@ -1,37 +1,52 @@
 var context = new AudioContext();
 
 
-var freq = 80;
-var semitone = 1;
-var oscillators = [];
-var oscno = 2;
-var amps = [];
-
-for (i = 0; i < oscno; i++) {
-    oscillators[i] = context.createOscillator();
-    oscillators[i].type = "sawtooth";
-    amps[i] = context.createGain();
-    oscillators[i].connect(amps[i]);
-    amps[i].connect(context.destination);
-    oscillators[i].start();
 
 
-    console.log(i);
-    console.log(oscillators[i]);
 
+    function createOscillators(freq, oscno) {
+
+    var oscillators = [];
+
+    var amps = [];
+    var filters = [];
+
+
+    for (i = 0; i < oscno; i++) {
+
+
+        filters[i] = context.createConvolver();
+
+        oscillators[i] = context.createOscillator();
+        oscillators[i].type = "sawtooth";
+        oscillators[i].frequency.value = freq;
+        amps[i] = context.createGain();
+
+        oscillators[i].connect(filters[i]);
+        filters[i].connect(amps[i]);
+        amps[i].connect(context.destination);
+
+
+        if (i % 2 == 0) {
+            oscillators[0].detune.value = Math.random() * 100;
+        }
+        oscillators[i].start();
+
+
+        console.log(i);
+        console.log(oscillators[i]);
+
+
+    }
 
 }
 
-
-oscillators[0].frequency.value = freq;
-oscillators[1].frequency.value = freq;
-oscillators[0].detune.value = semitone * 100;
+createOscillators(40, 10);
 
 
 
 
 
-//add a slider to control things instead.
 
 var butt = document.getElementById("stop");
 console.log(butt);
@@ -45,19 +60,58 @@ canvas.addEventListener('mouseover', mouser);
 function mouser(){
 
 }
+var volume;
+
 
 function mute(){
-    osc1.stop(1);
-    osc2.stop(2);
-}
+    console.log("Volume " + volume + " " );
+
+
+    if (document.getElementById("stop").value == 0) {
+        volume = document.getElementById("volumeslider").value;
+
+        for (i = 0; i < amps.length; i++) {
+            createOscillators.amps[i].gain.value = 0;
+
+        }
+        document.getElementById("volumeslider").value = 0;
+        document.getElementById("stop").value = 1;
+
+    }
+    else if ( document.getElementById("stop").value == 1) {
+        for (i = 0; i < amps.length; i++) {
+            amps[i].gain.value = volume/100;
+            document.getElementById("volumeslider").value = volume;
+            document.getElementById("stop").value = 0;
+            }
+
+        }
+
+    }
+
+
+
 
 var toneslider = document.getElementById("toner");
 console.log(toneslider);
-toneslider.addEventListener("change", tonechange);
+toneslider.addEventListener("input", tonechange);
 
 function tonechange() {
     for (i = 0; i < oscillators.length; i++) {
         oscillators[i].frequency.value = toneslider.value;
         console.log(toneslider.value);
+    }
+}
+
+
+
+var volumeslider = document.getElementById("volumeslider");
+console.log(volumeslider);
+volumeslider.addEventListener("input", volumechange);
+
+function volumechange() {
+    for (i = 0; i < amps.length; i++) {
+        amps[i].gain.value = volumeslider.value/100;
+        console.log(volumeslider.value);
     }
 }
