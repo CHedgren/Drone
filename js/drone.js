@@ -13,27 +13,28 @@ var amp      = context.createGain();
 
     var amps = [];
     var filters = [];
+    oscno = 64;
 
-    var merger = context.createChannelMerger(32);
 
-
-    for (i = 0; i < 31; i++) {
+    for (i = 0; i < oscno; i++) {
 
 
         filters[i] = context.createConvolver();
-
+        amps[i] = context.createGain();
         oscillators[i] = context.createOscillator();
-        oscillators[i].type = "sawtooth";
+        oscillators[i].type = (i%2)==0 ?"sawtooth":"sine";
         oscillators[i].frequency.value =880 //(i%2)==0 ? 40:(i%1)==0?160:80;
         oscillators[i].channelCountMode = 'explicit';
         oscillators[i].channelCount = 1;
 
-        oscillators[i].connect(amp);
-        oscillators[i].connect(analyser);
+        oscillators[i].connect(amps[i]);
+        amps[i].connect(analyser);
         // oscillators[i].connect(merger, 0, i);
         //filters[i].connect(amps[i]);
         // amps[i].connect(context.destination);
+        amps[i].gain.value = 1/oscno;
 
+        amps[i].connect(context.destination);
 
         if (i % 2 == 0) {
             oscillators[0].detune.value = Math.floor(Math.random() * 100);
@@ -47,19 +48,23 @@ var amp      = context.createGain();
 
     }
 
-amp.gain.value = 1;
 
-amp.connect(context.destination);
+
+
 
 analyser.fftSize = 2048;
 var bufferLength = analyser.frequencyBinCount;
 var dataArray = new Uint8Array(bufferLength);
-
+analyser.smoothingTimeConstant = 1;
 analyser.getByteTimeDomainData(dataArray);
+analyser.maxDecibels =500;
+
+
 
 // draw an oscilloscope of the current audio source
 var canvas = document.getElementById('drone-control');
 var canvasCtx = canvas.getContext('2d');
+
 function draw() {
 
     drawVisual = requestAnimationFrame(draw);
@@ -74,13 +79,13 @@ function draw() {
 
     canvasCtx.beginPath();
 
-    var sliceWidth = canvas.width * 1.0 / bufferLength;
+    var sliceWidth = canvas.width * 1.0 / (bufferLength);
     var x = 0;
 
     for(var i = 0; i < bufferLength; i++) {
 
-        var v = dataArray[i] / 128.0;
-        var y = v * canvas.height/2;
+        var v = dataArray[i] / (128.0);
+        var y = v * canvas.height/2 ;
 
         if(i === 0) {
             canvasCtx.moveTo(x, y);
@@ -106,12 +111,13 @@ draw();
 
 
 
- globalVar = 40;
+ time = 40;
+ freq = 40;
 
 setInterval(function(){
-    globalVar += 0.01
-    for (i = 0; i < 31; i++)
-    oscillators[i].frequency.value = (10*Math.sin(globalVar) +((i%2)==0 ? 40:(i%1)==0?160:80));
+    time += 0.01
+    for (i = 0; i < oscno; i++)
+    oscillators[i].frequency.value = (10*Math.sin(time) +((i%2)==0 ? freq:(i%1)==0?2*freq:3*freq));
 }, 16);
 
 
@@ -153,7 +159,7 @@ function mute(){
     }
     else if ( document.getElementById("stop").value == 1) {
         for (i = 0; i < amps.length; i++) {
-            amps[i].gain.value = volume/100;
+            amps[i].gain.value = volume/10000;
             document.getElementById("volumeslider").value = volume;
             document.getElementById("stop").value = 0;
         }
@@ -171,7 +177,7 @@ toneslider.addEventListener("input", tonechange);
 
 function tonechange() {
     for (i = 0; i < oscillators.length; i++) {
-        oscillators[i].frequency.value = toneslider.value;
+        freq= toneslider.value;
         console.log(toneslider.value);
     }
 }
